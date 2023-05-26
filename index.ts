@@ -5,6 +5,7 @@ import crypto from "crypto";
 const app: Express = express();
 import cors from "cors";
 import { CustomRequest, verifyToken } from "./middleware/auth";
+import { ERC1155_ABI } from "./abi/erc1155";
 const port = process.env.PORT ?? 4000;
 
 const bodyParser = require("body-parser");
@@ -13,6 +14,9 @@ const generateNonce = (): string => {
   const nonce = crypto.randomBytes(32).toString("hex");
   return nonce;
 };
+
+
+const provider = new ethers.JsonRpcProvider("https://matic-mumbai.chainstacklabs.com")
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -25,11 +29,14 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
   res.json({ seed: nonce });
 });
 
-app.get("/verify", verifyToken, (req: Request, res: Response) => {
+app.get("/:token/download", verifyToken, async (req: Request, res: Response) => {
+  const token = req.params.token;
 
-  
+  const contract = new ethers.Contract(token , ERC1155_ABI, provider);
 
-  res.json({address: (req as CustomRequest).address});
+  const balance = await contract.balanceOf((req as CustomRequest).address, 0);
+
+  res.json({balance: Number(balance)});
 
   
 });
