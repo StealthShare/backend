@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@types/node": "^20.2.4",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}
