@@ -6,9 +6,10 @@ const app: Express = express();
 import cors from "cors";
 import { CustomRequest, verifyToken } from "./middleware/auth";
 import { ERC1155_ABI } from "./abi/erc1155";
-import { MARKET_ADDRESS } from "./constants";
+import { MARKET_ADDRESS, MINTER_CONTRACT_ADDRESS } from "./constants";
 import { MARKET_ABI } from "./abi/market";
 import { OWNABLE_ABI } from "./abi/ownable";
+import { MINTER_ABI } from "./abi/minter";
 const port = process.env.PORT ?? 4000;
 var fileupload = require("express-fileupload");
 const { MongoClient, ServerApiVersion } = require("mongodb");
@@ -100,11 +101,11 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   const token = req.params.token;
   const files = req.files;
 
-  const contract = new ethers.Contract(token, OWNABLE_ABI, provider);
+  const contract = new ethers.Contract(MINTER_CONTRACT_ADDRESS, MINTER_ABI, provider);
 
-  const owner = await contract.owner();
+  const minter = await contract.minter(token);
 
-  if ((req as CustomRequest).address.toLowerCase() != owner.toLowerCase()) {
+  if ((req as CustomRequest).address.toLowerCase() != minter.toLowerCase()) {
     return res.status(401).send("You are not token owner");
   }
 
@@ -188,10 +189,10 @@ const packageContract = new ethers.Contract(
 );
 
 packageContract.on(
-  "NewListing(address, address, string, uint256, uint256)",
+  "NewListing(address, uint256, string, uint256, uint256)",
   async (
     user: string,
-    token: string,
+    token: number,
     uri: number,
     price: number,
     supply: number

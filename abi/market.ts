@@ -1,5 +1,16 @@
 export const MARKET_ABI = [
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collectionAddress_",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -10,9 +21,9 @@ export const MARKET_ABI = [
 			},
 			{
 				"indexed": false,
-				"internalType": "address",
+				"internalType": "uint256",
 				"name": "token",
-				"type": "address"
+				"type": "uint256"
 			},
 			{
 				"indexed": false,
@@ -71,9 +82,9 @@ export const MARKET_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address[]",
+				"internalType": "uint256[]",
 				"name": "tokens",
-				"type": "address[]"
+				"type": "uint256[]"
 			},
 			{
 				"internalType": "uint256[]",
@@ -94,9 +105,9 @@ export const MARKET_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "uint256",
 				"name": "",
-				"type": "address"
+				"type": "uint256"
 			}
 		],
 		"name": "listed",
@@ -113,9 +124,9 @@ export const MARKET_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "uint256",
 				"name": "",
-				"type": "address"
+				"type": "uint256"
 			}
 		],
 		"name": "listings",
@@ -247,9 +258,9 @@ export const MARKET_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "uint256",
 				"name": "token",
-				"type": "address"
+				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
