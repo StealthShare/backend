@@ -112,7 +112,7 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   try {
     const listings = await client
       .db("db")
-      .collection("listings")
+      .collection("files")
       .findOne({ token: token }, (err: any, res: any) => {
         console.log(res);
       });
@@ -120,8 +120,8 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
       const r = await client
         .db("db")
         .collection("files")
-        .insertMany(
-          [{ files: files.file, token: token }],
+        .insertOne(
+          { files: files.file, token: token },
           (err: any, res: any) => {
             if (err) throw err;
           }
