@@ -195,7 +195,55 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
       console.log(err);
       return res.status(500).send("server error");
     }
+<<<<<<< HEAD
+
+    res.json({ balance: Number(balance) });
+  }
+);
+
+app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
+  const token = req.params.token;
+  const files = req.files;
+
+  const contract = new ethers.Contract(
+    MINTER_CONTRACT_ADDRESS,
+    MINTER_ABI,
+    provider
+  );
+
+  const minter = await contract.minter(token);
+
+  if ((req as CustomRequest).address.toLowerCase() != minter.toLowerCase()) {
+    return res.status(401).send("You are not token owner");
+  }
+
+  try {
+    const f = await client
+      .db("db")
+      .collection("files")
+      .findOne({ token: token }, (err: any, res: any) => {
+        console.log(res);
+      });
+    if (f === null) {
+      const r = await client
+        .db("db")
+        .collection("files")
+        .insertOne(
+          { files: files.file, token: token },
+          (err: any, res: any) => {
+            if (err) throw err;
+          }
+        );
+      return res.status(200).send("Success!");
+    }
+    return res.status(400).send("Token already exists");
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("server error");
+  }
+=======
   } catch (error) {}
+>>>>>>> 6f22feca185638fc93f73e8dbcd317bc3d26e60c
 });
 
 app.post(
@@ -218,27 +266,20 @@ app.post(
 );
 
 app.get("/listings", async (req: Request, res: Response) => {
-  const token = req.params.token;
+  //const token = req.params.token;
 
   try {
-    const listings = await client
+    const r = await client
       .db("db")
       .collection("listings")
-      .findOne({ token: token }, (err: any, res: any) => {
+      .find({})
+      .toArray((err: any, res: any) => {
         console.log(res);
       });
-    if (listings === null) {
-      const r = await client
-        .db("db")
-        .collection("listings")
-        .find({})
-        .toArray((err: any, res: any) => {
-          console.log(res);
-        });
-      console.log(r);
-      return res.status(200).json({ listings: r });
-    }
-    return res.status(400).send("Listing already exists");
+    console.log(r);
+    return res.status(200).json({ listings: r });
+
+    //return res.status(400).send("Listing already exists");
   } catch (err) {
     console.log(err);
     res.status(500).send("server error");
