@@ -110,17 +110,26 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   }
 
   try {
-    const r = await client
+    const listings = await client
       .db("db")
-      .collection("files")
-      .insertMany(
-        [{ files: files.file, token: token }],
-        (err: any, res: any) => {
-          if (err) throw err;
-          return res.status(200).send("Success!");
-        }
-      );
-    return res.status(200).send("Success!");
+      .collection("listings")
+      .findOne({ token: token })
+      .toArray((err: any, res: any) => {
+        console.log(res);
+      });
+    if (listings !== null) {
+      const r = await client
+        .db("db")
+        .collection("files")
+        .insertMany(
+          [{ files: files.file, token: token }],
+          (err: any, res: any) => {
+            if (err) throw err;
+          }
+        );
+      return res.status(200).send("Success!");
+    }
+    return res.status(400).send("Token already exists");
   } catch (err) {
     console.log(err);
     return res.status(500).send("server error");
