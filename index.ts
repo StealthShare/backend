@@ -110,7 +110,7 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   }
 
   try {
-    await client
+    const r = await client
       .db("db")
       .collection("files")
       .insertMany(
@@ -120,6 +120,7 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
           return res.status(200).send("Success!");
         }
       );
+    return res.status(200).send("Success!");
   } catch (err) {
     console.log(err);
     return res.status(500).send("server error");
