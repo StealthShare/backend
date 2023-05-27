@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import { ethers } from "ethers";
+
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 const app: Express = express();
@@ -10,9 +11,17 @@ import { MARKET_ADDRESS, MINTER_CONTRACT_ADDRESS } from "./constants";
 import { MARKET_ABI } from "./abi/market";
 import { OWNABLE_ABI } from "./abi/ownable";
 import { MINTER_ABI } from "./abi/minter";
+import { makeFileObjects } from "./utils";
+import { File } from "buffer";
 const port = process.env.PORT ?? 4000;
 var fileupload = require("express-fileupload");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { Web3Storage, getFilesFromPath } = require("web3.storage");
+import dotenv from "dotenv";
+
+
+dotenv.config()
+
 const fs = require("fs");
 const uri =
   "mongodb+srv://user:user@cluster0.2dvtd3b.mongodb.net/?retryWrites=true&w=majority";
@@ -21,9 +30,11 @@ const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
-    deprecationErrors: true
-  }
+    deprecationErrors: true,
+  },
 });
+
+const storage = new Web3Storage({ token: process.env.IPFS_TOKEN });
 
 const connect = async () => {
   try {
@@ -41,7 +52,7 @@ const connect = async () => {
 
 const bodyParser = require("body-parser");
 
-const generateNonce = (): string => {
+export const generateNonce = (): string => {
   const nonce = crypto.randomBytes(32).toString("hex");
   return nonce;
 };
@@ -49,6 +60,8 @@ const generateNonce = (): string => {
 const provider = new ethers.JsonRpcProvider(
   "https://matic-mumbai.chainstacklabs.com"
 );
+
+
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -58,40 +71,129 @@ app.use(express.urlencoded({ extended: true }));
 connect();
 
 app.get("/:address/getNonce", (req: Request, res: Response) => {
+
   const address = req.params.address;
   const nonce = generateNonce();
 
-  res.json({ seed: nonce });
+  res.json({ seed: process.env.IPFS_TOKEN });
+});
+
+app.post("/uploadToIPFS", async (req: Request, res: Response) => {
+  console.log(req.body);
+
+  const filename = generateNonce() + ".json";
+
+  //get image
+
+  
+	
+  //const cid2 = await storage.put(rawdata);
+
+  const data =  {
+	"description": req.body.description, 
+	"image": "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
+	"name": req.body.name,
+	"attributes": [  ]
+  }
+  
+
+  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data))
+  let rawdata = await getFilesFromPath("./metadata/" + filename)
+
+  const cid = await storage.put(rawdata);
+  
+  res.json(`https://ipfs.io/ipfs/${cid}/${filename}`)  
 });
 
 app.get(
   "/:token/download",
   verifyToken,
   async (req: Request, res: Response) => {
+    try {
+      const token = req.params.token;
+
+      const contract = new ethers.Contract(
+        MINTER_CONTRACT_ADDRESS,
+        ERC1155_ABI,
+        provider
+      );
+
+      console.log(token);
+      console.log((req as CustomRequest).address);
+
+      const balance = await contract.balanceOf(
+        (req as CustomRequest).address,
+        token
+      );
+
+      console.log("balance", balance);
+
+      if (balance <= 0) return res.status(400).send("No token");
+
+      try {
+        const r = await client
+          .db("db")
+          .collection("files")
+          .findOne({ token: token }, (err: any, res: any) => {
+            console.log(res);
+          });
+        console.log(r.files.data);
+        var buf = Buffer.from(r.files.data.toString(), "base64");
+
+        return res
+          .status(200)
+          .json({ files: r.files.data, filename: r.files.name });
+      } catch (err) {
+        console.log(err);
+        res.status(500).send("server error");
+      }
+
+      res.json({ balance: Number(balance) });
+    } catch (error) {}
+  }
+);
+
+app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
+  try {
     const token = req.params.token;
+    const files = req.files;
 
-    const contract = new ethers.Contract(token, ERC1155_ABI, provider);
+    const contract = new ethers.Contract(
+      MINTER_CONTRACT_ADDRESS,
+      MINTER_ABI,
+      provider
+    );
+    const minter = await contract.minter(Number(token));
 
-    const balance = await contract.balanceOf((req as CustomRequest).address, 0);
-
-    console.log("address", (req as CustomRequest).address);
-
-    if (balance <= 0) return res.status(400).send("No token");
+    if ((req as CustomRequest).address.toLowerCase() != minter.toLowerCase()) {
+      return res.status(401).send("You are not token owner");
+    }
 
     try {
-      const r = await client
+      const f = await client
         .db("db")
         .collection("files")
         .findOne({ token: token }, (err: any, res: any) => {
           console.log(res);
         });
-      return res
-        .status(200)
-        .json({ files: r.files.data, filename: r.files.name });
+      if (f === null) {
+        const r = await client
+          .db("db")
+          .collection("files")
+          .insertOne(
+            { files: files.file, token: token },
+            (err: any, res: any) => {
+              if (err) throw err;
+            }
+          );
+        return res.status(200).send("Success!");
+      }
+      return res.status(400).send("Token already exists");
     } catch (err) {
       console.log(err);
-      res.status(500).send("server error");
+      return res.status(500).send("server error");
     }
+<<<<<<< HEAD
 
     res.json({ balance: Number(balance) });
   }
@@ -137,6 +239,9 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
     console.log(err);
     return res.status(500).send("server error");
   }
+=======
+  } catch (error) {}
+>>>>>>> 6f22feca185638fc93f73e8dbcd317bc3d26e60c
 });
 
 app.post(
@@ -199,7 +304,7 @@ packageContract.on(
       token,
       price,
       uri,
-      supply
+      supply,
     });
     try {
       const listings = await client
@@ -218,7 +323,7 @@ packageContract.on(
             price: price,
             name: Math.floor(Math.random() * 1000).toString(),
             image: "https://picsum.photos/200",
-            description: Math.floor(Math.random() * 1000).toString()
+            description: Math.floor(Math.random() * 1000).toString(),
           });
       }
     } catch (err) {
