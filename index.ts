@@ -113,8 +113,7 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
     const listings = await client
       .db("db")
       .collection("listings")
-      .findOne({ token: token })
-      .toArray((err: any, res: any) => {
+      .findOne({ token: token }, (err: any, res: any) => {
         console.log(res);
       });
     if (listings !== null) {
