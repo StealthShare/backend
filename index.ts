@@ -83,10 +83,22 @@ app.post("/uploadToIPFS", async (req: Request, res: Response) => {
 
   const filename = generateNonce() + ".json";
 
-  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(req.body))
-  let rawdata = await getFilesFromPath("./metadata/" + filename)
+  //get image
 
-  console.log(rawdata)
+  
+	
+  //const cid2 = await storage.put(rawdata);
+
+  const data =  {
+	"description": req.body.description, 
+	"image": "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
+	"name": req.body.name,
+	"attributes": [  ]
+  }
+  
+
+  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data))
+  let rawdata = await getFilesFromPath("./metadata/" + filename)
 
   const cid = await storage.put(rawdata);
   
