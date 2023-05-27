@@ -18,6 +18,7 @@ var fileupload = require("express-fileupload");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const { Web3Storage, getFilesFromPath } = require("web3.storage");
 import dotenv from "dotenv";
+import axios from "axios";
 
 dotenv.config();
 
@@ -29,8 +30,8 @@ const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
-    deprecationErrors: true,
-  },
+    deprecationErrors: true
+  }
 });
 
 const storage = new Web3Storage({ token: process.env.IPFS_TOKEN });
@@ -74,18 +75,28 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
   res.json({ seed: process.env.IPFS_TOKEN });
 });
 
-app.post("/uploadToIPFS", async (req: Request, res: Response) => {
-  console.log(req.body);
+app.post("/uploadToIPFS", async (req: any, res: Response) => {
+  console.log(req.files);
+  console.log(req.body.name);
+  console.log(req.body.description);
 
   //get image
 
-  //const cid2 = await storage.put(rawdata);
+  //const ci = await storage.put(req.files);
+
+  const photoFilename =
+    generateNonce() + "." + req.files.file.name.split(".")[1];
+
+  const y = fs.writeFileSync("./images/" + photoFilename, req.files.file.data);
+  let rawdataImage = await getFilesFromPath("./images/" + photoFilename);
+
+  const cid2 = await storage.put(rawdataImage);
 
   const data = {
     description: req.body.description,
-    image: "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
+    image: `https://ipfs.io/ipfs/${cid2}/${photoFilename}`,
     name: req.body.name,
-    attributes: [],
+    attributes: []
   };
 
   const filename = generateNonce() + ".json";
@@ -93,9 +104,14 @@ app.post("/uploadToIPFS", async (req: Request, res: Response) => {
   const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data));
   let rawdata = await getFilesFromPath("./metadata/" + filename);
 
+  console.log("rawdata", rawdata);
+
   const cid = await storage.put(rawdata);
 
-  res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
+  fs.unlinkSync("./images/" + photoFilename);
+  fs.unlinkSync("./metadata/" + filename);
+
+  return res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
 });
 
 app.get(
@@ -186,7 +202,9 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
       console.log(err);
       return res.status(500).send("server error");
     }
-  } catch (error) {}
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
@@ -282,7 +300,7 @@ packageContract.on(
   async (
     user: string,
     token: number,
-    uri: number,
+    uri: string,
     price: number,
     supply: number
   ) => {
@@ -291,10 +309,32 @@ packageContract.on(
       token,
       price,
       uri,
-      supply,
+      supply
     });
-
     try {
+      const response = await axios.get(uri);
+
+      const view = await client
+        .db("db")
+        .collection("listings")
+        .aggregate([
+          {
+            $lookup: {
+              from: "files",
+              localField: "token",
+              foreignField: "token",
+              as: "files"
+            }
+          },
+          { $unwind: "$files" }
+        ])
+        .toArray(function (err: any, res: any) {
+          if (err) throw err;
+          console.log(JSON.stringify(res));
+        });
+
+      //console.log("view", view[0].files.files.size);
+
       const listings = await client
         .db("db")
         .collection("listings")
@@ -307,11 +347,13 @@ packageContract.on(
           .collection("listings")
           .insertOne({
             user: user,
-            token: token,
+            token: token.toString(),
             price: price,
-            name: Math.floor(Math.random() * 1000).toString(),
-            image: "https://picsum.photos/200",
-            description: Math.floor(Math.random() * 1000).toString(),
+            name: response.data.name ?? "StealthShare File",
+            image: response.data.image ?? "StealthShare File Image",
+            description:
+              response.data.description ?? "StealthShare File Description",
+            size: view[0].files.files.size
           });
       }
     } catch (err) {
