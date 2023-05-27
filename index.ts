@@ -314,26 +314,38 @@ packageContract.on(
     try {
       const response = await axios.get(uri);
 
-      const view = await client
-        .db("db")
-        .collection("listings")
-        .aggregate([
-          {
-            $lookup: {
-              from: "files",
-              localField: "token",
-              foreignField: "token",
-              as: "files"
-            }
-          },
-          { $unwind: "$files" }
-        ])
-        .toArray(function (err: any, res: any) {
-          if (err) throw err;
-          console.log(JSON.stringify(res));
-        });
+      // const view = await client
+      //   .db("db")
+      //   .collection("listings")
+      //   .aggregate([
+      //     {
+      //       $lookup: {
+      //         from: "files",
+      //         localField: "token",
+      //         foreignField: "token",
+      //         as: "files"
+      //       }
+      //     }
+      //   ])
+      //   .toArray(function (err: any, res: any) {
+      //     if (err) throw err;
+      //     console.log(JSON.stringify(res));
+      //   });
 
       //console.log("view", view[0].files.files.size);
+      // console.log(
+      //   "size",
+      //   view.filter((obj: any) => {
+      //     return obj.token.toString() === token.toString();
+      //   })[0].files.files.size
+      // );
+      const f = await client
+        .db("db")
+        .collection("files")
+        .findOne({ token: token.toString() }, (err: any, res: any) => {
+          console.log(res);
+        });
+      console.log(f.files.size);
 
       const listings = await client
         .db("db")
@@ -352,8 +364,8 @@ packageContract.on(
             name: response.data.name ?? "StealthShare File",
             image: response.data.image ?? "StealthShare File Image",
             description:
-              response.data.description ?? "StealthShare File Description"
-            //size: view[0].files.files.size
+              response.data.description ?? "StealthShare File Description",
+            size: f.files.size
           });
       }
     } catch (err) {
