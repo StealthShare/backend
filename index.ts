@@ -82,12 +82,12 @@ app.get(
         .findOne({ token: token }, (err: any, res: any) => {
           console.log(res);
         });
-      console.log(r.files.data);
-      const file = fs.createWriteStream(r.files.name);
-      var buf = Buffer.from(r.files.data, "base64");
-      console.log(buf);
-      file.write(buf);
-      file.close();
+      // console.log(r.files.data);
+      // const file = fs.createWriteStream(r.files.name);
+      // var buf = Buffer.from(r.files.data, "base64");
+      // console.log(buf);
+      // file.write(buf);
+      // file.close();
     } catch (err) {
       console.log(err);
       res.status(500).send("server error");
@@ -110,16 +110,26 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   }
 
   try {
-    await client
+    const listings = await client
       .db("db")
-      .collection("files")
-      .insertMany(
-        [{ files: files.file, token: token }],
-        (err: any, res: any) => {
-          if (err) throw err;
-          return res.status(200).send("Success!");
-        }
-      );
+      .collection("listings")
+      .findOne({ token: token })
+      .toArray((err: any, res: any) => {
+        console.log(res);
+      });
+    if (listings !== null) {
+      const r = await client
+        .db("db")
+        .collection("files")
+        .insertMany(
+          [{ files: files.file, token: token }],
+          (err: any, res: any) => {
+            if (err) throw err;
+          }
+        );
+      return res.status(200).send("Success!");
+    }
+    return res.status(400).send("Token already exists");
   } catch (err) {
     console.log(err);
     return res.status(500).send("server error");
@@ -145,6 +155,25 @@ app.post(
   }
 );
 
+app.get("/:token/listings", async (req: Request, res: Response) => {
+  const token = req.params.token;
+
+  try {
+    const r = await client
+      .db("db")
+      .collection("listings")
+      .find({})
+      .toArray((err: any, res: any) => {
+        console.log(res);
+      });
+    console.log(r);
+    return res.status(200).json({ listings: r });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("server error");
+  }
+});
+
 const packageContract = new ethers.Contract(
   MARKET_ADDRESS,
   MARKET_ABI,
@@ -153,14 +182,35 @@ const packageContract = new ethers.Contract(
 
 packageContract.on(
   "NewListing(address, address, string, uint256, uint256)",
-  (user: string, token: string, uri : number, price: number, supply: number) => {
+  async (
+    user: string,
+    token: string,
+    uri: number,
+    price: number,
+    supply: number
+  ) => {
     console.log("New token listed.", "Event data:", {
       user,
       token,
       price,
       uri,
-	  supply
+      supply
     });
+    try {
+      await client
+        .db("db")
+        .collection("listings")
+        .insertOne({
+          user: user,
+          token: token,
+          price: price,
+          name: Math.floor(Math.random() * 1000).toString(),
+          image: "https://picsum.photos/200",
+          description: Math.floor(Math.random() * 1000).toString()
+        });
+    } catch (err) {
+      console.log(err);
+    }
   }
 );
 
