@@ -193,9 +193,7 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
       console.log(err);
       return res.status(500).send("server error");
     }
-<<<<<<< HEAD
 
-    res.json({ balance: Number(balance) });
   }
 );
 
@@ -239,9 +237,6 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
     console.log(err);
     return res.status(500).send("server error");
   }
-=======
-  } catch (error) {}
->>>>>>> 6f22feca185638fc93f73e8dbcd317bc3d26e60c
 });
 
 app.post(
