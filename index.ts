@@ -81,7 +81,6 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
 app.post("/uploadToIPFS", async (req: Request, res: Response) => {
   console.log(req.body);
 
-  const filename = generateNonce() + ".json";
 
   //get image
 
@@ -93,9 +92,12 @@ app.post("/uploadToIPFS", async (req: Request, res: Response) => {
 	"description": req.body.description, 
 	"image": "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
 	"name": req.body.name,
-	"attributes": [  ]
+	"attributes": [ 
+
+	]
   }
   
+  const filename = generateNonce() + ".json";
 
   const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data))
   let rawdata = await getFilesFromPath("./metadata/" + filename)
@@ -301,6 +303,9 @@ packageContract.on(
       uri,
       supply,
     });
+
+	
+
     try {
       const listings = await client
         .db("db")
