@@ -19,8 +19,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 const { Web3Storage, getFilesFromPath } = require("web3.storage");
 import dotenv from "dotenv";
 
-
-dotenv.config()
+dotenv.config();
 
 const fs = require("fs");
 const uri =
@@ -30,8 +29,8 @@ const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
-    deprecationErrors: true,
-  },
+    deprecationErrors: true
+  }
 });
 
 const storage = new Web3Storage({ token: process.env.IPFS_TOKEN });
@@ -61,8 +60,6 @@ const provider = new ethers.JsonRpcProvider(
   "https://matic-mumbai.chainstacklabs.com"
 );
 
-
-
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -71,7 +68,6 @@ app.use(express.urlencoded({ extended: true }));
 connect();
 
 app.get("/:address/getNonce", (req: Request, res: Response) => {
-
   const address = req.params.address;
   const nonce = generateNonce();
 
@@ -81,30 +77,25 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
 app.post("/uploadToIPFS", async (req: Request, res: Response) => {
   console.log(req.body);
 
-
   //get image
 
-  
-	
   //const cid2 = await storage.put(rawdata);
 
-  const data =  {
-	"description": req.body.description, 
-	"image": "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
-	"name": req.body.name,
-	"attributes": [ 
+  const data = {
+    description: req.body.description,
+    image: "", ////https://ipfs.io/ipfs/${cid2}/${filename}`),
+    name: req.body.name,
+    attributes: []
+  };
 
-	]
-  }
-  
   const filename = generateNonce() + ".json";
 
-  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data))
-  let rawdata = await getFilesFromPath("./metadata/" + filename)
+  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data));
+  let rawdata = await getFilesFromPath("./metadata/" + filename);
 
   const cid = await storage.put(rawdata);
-  
-  res.json(`https://ipfs.io/ipfs/${cid}/${filename}`)  
+
+  res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
 });
 
 app.get(
@@ -195,9 +186,10 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
       console.log(err);
       return res.status(500).send("server error");
     }
-
+  } catch (err) {
+    console.log(err);
   }
-);
+});
 
 app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   const token = req.params.token;
@@ -301,10 +293,8 @@ packageContract.on(
       token,
       price,
       uri,
-      supply,
+      supply
     });
-
-	
 
     try {
       const listings = await client
@@ -323,7 +313,7 @@ packageContract.on(
             price: price,
             name: Math.floor(Math.random() * 1000).toString(),
             image: "https://picsum.photos/200",
-            description: Math.floor(Math.random() * 1000).toString(),
+            description: Math.floor(Math.random() * 1000).toString()
           });
       }
     } catch (err) {
