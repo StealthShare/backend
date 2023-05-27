@@ -8,7 +8,9 @@ import { CustomRequest, verifyToken } from "./middleware/auth";
 import { ERC1155_ABI } from "./abi/erc1155";
 import { OWNABLE_ABI } from "./abi/ownable";
 const port = process.env.PORT ?? 4000;
+var fileupload = require("express-fileupload");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const fs = require("fs");
 const uri =
   "mongodb+srv://user:user@cluster0.2dvtd3b.mongodb.net/?retryWrites=true&w=majority";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -48,6 +50,8 @@ const provider = new ethers.JsonRpcProvider(
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(fileupload());
+app.use(express.urlencoded({ extended: true }));
 connect();
 
 app.get("/:address/getNonce", (req: Request, res: Response) => {
@@ -67,44 +71,58 @@ app.get(
 
     const balance = await contract.balanceOf((req as CustomRequest).address, 0);
 
+    if (balance <= 0) return res.status(400).send("No token");
+
+    try {
+      const r = await client
+        .db("db")
+        .collection("files")
+        .findOne({ token: token }, (err: any, res: any) => {
+          console.log(res);
+        });
+      console.log(r.files.data);
+      const file = fs.createWriteStream(r.files.name);
+      var buf = Buffer.from(r.files.data, "base64");
+      console.log(buf);
+      file.write(buf);
+      file.close();
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("server error");
+    }
+
     res.json({ balance: Number(balance) });
   }
 );
 
-app.post(
-  "/:token/uploadFile",
-  verifyToken,
-  async (req: Request, res: Response) => {
-    const token = req.params.token;
-    const files = req.body.files;
+app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
+  const token = req.params.token;
+  const files = req.files;
 
-    const contract = new ethers.Contract(token, OWNABLE_ABI, provider);
+  const contract = new ethers.Contract(token, OWNABLE_ABI, provider);
 
-    const owner = await contract.owner();
+  const owner = await contract.owner();
 
-    if ((req as CustomRequest).address != owner) {
-      return res.status(401).send("You are not token owner");
-    }
-
-    //TODO: add files to database
-    try {
-      const data = files.map((file: any) => {
-        return { file: file, id: token };
-      });
-      await client
-        .db("db")
-        .collection("files")
-        .insertMany(data, (err: any, res: any) => {
-          if (err) throw err;
-          console.log("1 document inserted");
-        });
-    } catch (err) {
-      res.status(500).send("server error");
-    } finally {
-      res.status(200).send("Success!");
-    }
+  if ((req as CustomRequest).address.toLowerCase() != owner.toLowerCase()) {
+    return res.status(401).send("You are not token owner");
   }
-);
+
+  try {
+    await client
+      .db("db")
+      .collection("files")
+      .insertMany(
+        [{ files: files.file, token: token }],
+        (err: any, res: any) => {
+          if (err) throw err;
+          return res.status(200).send("Success!");
+        }
+      );
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("server error");
+  }
+});
 
 app.post(
   "/login",
