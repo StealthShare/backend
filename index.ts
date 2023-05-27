@@ -152,8 +152,8 @@ const packageContract = new ethers.Contract(
 );
 
 packageContract.on(
-  "NewListing(address, address, string, uint256)",
-  (user: string, token: string, uri : number, price: number) => {
+  "NewListing(address, address, string, uint256, uint256)",
+  (user: string, token: string, uri : number, price: number, supply: number) => {
     console.log("New token listed.", "Event data:", {
       user,
       token,
