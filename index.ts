@@ -338,7 +338,7 @@ packageContract.on(
       const listings = await client
         .db("db")
         .collection("listings")
-        .findOne({ token: token }, (err: any, res: any) => {
+        .findOne({ token: token.toString() }, (err: any, res: any) => {
           console.log(res);
         });
       if (listings === null) {
@@ -352,8 +352,8 @@ packageContract.on(
             name: response.data.name ?? "StealthShare File",
             image: response.data.image ?? "StealthShare File Image",
             description:
-              response.data.description ?? "StealthShare File Description",
-            size: view[0].files.files.size
+              response.data.description ?? "StealthShare File Description"
+            //size: view[0].files.files.size
           });
       }
     } catch (err) {
