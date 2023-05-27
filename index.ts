@@ -73,7 +73,8 @@ app.get(
 
     const balance = await contract.balanceOf((req as CustomRequest).address, 0);
 
-    if (balance <= 0) return res.status(400).send("No token");
+    console.log("address", (req as CustomRequest).address);
+    //if (balance <= 0) return res.status(400).send("No token");
 
     try {
       const r = await client
@@ -82,12 +83,12 @@ app.get(
         .findOne({ token: token }, (err: any, res: any) => {
           console.log(res);
         });
-      // console.log(r.files.data);
-      // const file = fs.createWriteStream(r.files.name);
-      // var buf = Buffer.from(r.files.data, "base64");
-      // console.log(buf);
-      // file.write(buf);
-      // file.close();
+      console.log(r.files.data);
+      var buf = Buffer.from(r.files.data.toString(), "base64");
+
+      return res
+        .status(200)
+        .json({ files: r.files.data, filename: r.files.name });
     } catch (err) {
       console.log(err);
       res.status(500).send("server error");
@@ -154,7 +155,7 @@ app.post(
   }
 );
 
-app.get("/:token/listings", async (req: Request, res: Response) => {
+app.get("/listings", async (req: Request, res: Response) => {
   const token = req.params.token;
 
   try {
