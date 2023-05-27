@@ -101,7 +101,11 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   const token = req.params.token;
   const files = req.files;
 
-  const contract = new ethers.Contract(MINTER_CONTRACT_ADDRESS, MINTER_ABI, provider);
+  const contract = new ethers.Contract(
+    MINTER_CONTRACT_ADDRESS,
+    MINTER_ABI,
+    provider
+  );
 
   const minter = await contract.minter(token);
 
@@ -155,27 +159,20 @@ app.post(
 );
 
 app.get("/listings", async (req: Request, res: Response) => {
-  const token = req.params.token;
+  //const token = req.params.token;
 
   try {
-    const listings = await client
+    const r = await client
       .db("db")
       .collection("listings")
-      .findOne({ token: token }, (err: any, res: any) => {
+      .find({})
+      .toArray((err: any, res: any) => {
         console.log(res);
       });
-    if (listings === null) {
-      const r = await client
-        .db("db")
-        .collection("listings")
-        .find({})
-        .toArray((err: any, res: any) => {
-          console.log(res);
-        });
-      console.log(r);
-      return res.status(200).json({ listings: r });
-    }
-    return res.status(400).send("Listing already exists");
+    console.log(r);
+    return res.status(200).json({ listings: r });
+
+    //return res.status(400).send("Listing already exists");
   } catch (err) {
     console.log(err);
     res.status(500).send("server error");
