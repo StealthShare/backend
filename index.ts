@@ -110,13 +110,13 @@ app.post("/:token/uploadFile", verifyToken, async (req: any, res: Response) => {
   }
 
   try {
-    const listings = await client
+    const f = await client
       .db("db")
       .collection("files")
       .findOne({ token: token }, (err: any, res: any) => {
         console.log(res);
       });
-    if (listings === null) {
+    if (f === null) {
       const r = await client
         .db("db")
         .collection("files")
@@ -158,15 +158,24 @@ app.get("/:token/listings", async (req: Request, res: Response) => {
   const token = req.params.token;
 
   try {
-    const r = await client
+    const listings = await client
       .db("db")
       .collection("listings")
-      .find({})
-      .toArray((err: any, res: any) => {
+      .findOne({ token: token }, (err: any, res: any) => {
         console.log(res);
       });
-    console.log(r);
-    return res.status(200).json({ listings: r });
+    if (listings === null) {
+      const r = await client
+        .db("db")
+        .collection("listings")
+        .find({})
+        .toArray((err: any, res: any) => {
+          console.log(res);
+        });
+      console.log(r);
+      return res.status(200).json({ listings: r });
+    }
+    return res.status(400).send("Listing already exists");
   } catch (err) {
     console.log(err);
     res.status(500).send("server error");
