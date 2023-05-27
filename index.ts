@@ -205,17 +205,25 @@ packageContract.on(
       supply
     });
     try {
-      await client
+      const listings = await client
         .db("db")
         .collection("listings")
-        .insertOne({
-          user: user,
-          token: token,
-          price: price,
-          name: Math.floor(Math.random() * 1000).toString(),
-          image: "https://picsum.photos/200",
-          description: Math.floor(Math.random() * 1000).toString()
+        .findOne({ token: token }, (err: any, res: any) => {
+          console.log(res);
         });
+      if (listings === null) {
+        await client
+          .db("db")
+          .collection("listings")
+          .insertOne({
+            user: user,
+            token: token,
+            price: price,
+            name: Math.floor(Math.random() * 1000).toString(),
+            image: "https://picsum.photos/200",
+            description: Math.floor(Math.random() * 1000).toString()
+          });
+      }
     } catch (err) {
       console.log(err);
     }
