@@ -58,7 +58,8 @@ export const generateNonce = (): string => {
 };
 
 const provider = new ethers.JsonRpcProvider(
-  "https://matic-mumbai.chainstacklabs.com"
+ "https://rpc.testnet.mantle.xyz"
+
 );
 
 app.use(cors());
