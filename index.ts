@@ -30,8 +30,8 @@ const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
-    deprecationErrors: true,
-  },
+    deprecationErrors: true
+  }
 });
 
 const storage = new Web3Storage({ token: process.env.IPFS_TOKEN });
@@ -77,13 +77,6 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
 
 app.post("/uploadToIPFS", async (req: any, res: Response) => {
   try {
-    console.log(req.files);
-    console.log(req.body);
-
-    //get image
-
-    //const ci = await storage.put(req.files);
-
     const photoFilename =
       generateNonce() + "." + req.files.file.name.split(".")[1];
 
@@ -103,17 +96,15 @@ app.post("/uploadToIPFS", async (req: any, res: Response) => {
       attributes: [
         {
           trait_type: "Type",
-          value: req.body.type,
-        },
-      ],
+          value: req.body.type
+        }
+      ]
     };
 
     const filename = generateNonce() + ".json";
 
     const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data));
     let rawdata = await getFilesFromPath("./metadata/" + filename);
-
-    console.log("rawdata", rawdata);
 
     const cid = await storage.put(rawdata);
 
@@ -122,7 +113,7 @@ app.post("/uploadToIPFS", async (req: any, res: Response) => {
 
     return res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
   } catch (error) {
-	  res.status(500).send("Internal error")
+    res.status(500).send("Internal error");
   }
 });
 
@@ -139,15 +130,10 @@ app.get(
         provider
       );
 
-      console.log(token);
-      console.log((req as CustomRequest).address);
-
       const balance = await contract.balanceOf(
         (req as CustomRequest).address,
         token
       );
-
-      console.log("balance", balance);
 
       if (balance <= 0) return res.status(400).send("No token");
 
@@ -158,7 +144,7 @@ app.get(
           .findOne({ token: token }, (err: any, res: any) => {
             console.log(res);
           });
-        console.log(r.files.data);
+
         var buf = Buffer.from(r.files.data.toString(), "base64");
 
         return res
@@ -291,7 +277,6 @@ app.get("/listings", async (req: Request, res: Response) => {
       .toArray((err: any, res: any) => {
         console.log(res);
       });
-    console.log(r);
     return res.status(200).json({ listings: r });
 
     //return res.status(400).send("Listing already exists");
@@ -308,91 +293,61 @@ const packageContract = new ethers.Contract(
 );
 
 try {
+  packageContract.on(
+    "NewListing(address, uint256, string, uint256, uint256)",
+    async (
+      user: string,
+      token: number,
+      uri: string,
+      price: number,
+      supply: number
+    ) => {
+      console.log("New token listed.", "Event data:", {
+        user,
+        token,
+        price,
+        uri,
+        supply
+      });
+      try {
+        const response = await axios.get(uri);
 
+        const f = await client
+          .db("db")
+          .collection("files")
+          .findOne({ token: token.toString() }, (err: any, res: any) => {
+            console.log(res);
+          });
 
-packageContract.on(
-  "NewListing(address, uint256, string, uint256, uint256)",
-  async (
-    user: string,
-    token: number,
-    uri: string,
-    price: number,
-    supply: number
-  ) => {
-    console.log("New token listed.", "Event data:", {
-      user,
-      token,
-      price,
-      uri,
-      supply,
-    });
-    try {
-      const response = await axios.get(uri);
-
-      // const view = await client
-      //   .db("db")
-      //   .collection("listings")
-      //   .aggregate([
-      //     {
-      //       $lookup: {
-      //         from: "files",
-      //         localField: "token",
-      //         foreignField: "token",
-      //         as: "files"
-      //       }
-      //     }
-      //   ])
-      //   .toArray(function (err: any, res: any) {
-      //     if (err) throw err;
-      //     console.log(JSON.stringify(res));
-      //   });
-
-      //console.log("view", view[0].files.files.size);
-      // console.log(
-      //   "size",
-      //   view.filter((obj: any) => {
-      //     return obj.token.toString() === token.toString();
-      //   })[0].files.files.size
-      // );
-      const f = await client
-        .db("db")
-        .collection("files")
-        .findOne({ token: token.toString() }, (err: any, res: any) => {
-          console.log(res);
-        });
-      console.log(f.files.size);
-
-      const listings = await client
-        .db("db")
-        .collection("listings")
-        .findOne({ token: token.toString() }, (err: any, res: any) => {
-          console.log(res);
-        });
-      if (listings === null) {
-        await client
+        const listings = await client
           .db("db")
           .collection("listings")
-          .insertOne({
-            user: user,
-            token: token.toString(),
-            price: price,
-            type: response.data.attributes[0].value ?? "File",
-            tags: response.data.tags ?? [],
-            name: response.data.name ?? "StealthShare File",
-            image: response.data.image ?? "StealthShare File Image",
-            description:
-              response.data.description ?? "StealthShare File Description",
-            size: f.files.size
+          .findOne({ token: token.toString() }, (err: any, res: any) => {
+            console.log(res);
           });
+        if (listings === null) {
+          await client
+            .db("db")
+            .collection("listings")
+            .insertOne({
+              user: user,
+              token: token.toString(),
+              price: price,
+              type: response.data.attributes[0].value ?? "File",
+              tags: response.data.tags ?? [],
+              name: response.data.name ?? "StealthShare File",
+              image: response.data.image ?? "StealthShare File Image",
+              description:
+                response.data.description ?? "StealthShare File Description",
+              size: f.files.size
+            });
+        }
+      } catch (err) {
+        console.log(err);
       }
-    } catch (err) {
-      console.log(err);
     }
-  }
-);
-} catch (error) {
-
-}
+  );
+} catch (error) {}
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
