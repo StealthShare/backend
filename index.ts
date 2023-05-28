@@ -30,8 +30,8 @@ const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
-    deprecationErrors: true
-  }
+    deprecationErrors: true,
+  },
 });
 
 const storage = new Web3Storage({ token: process.env.IPFS_TOKEN });
@@ -76,42 +76,54 @@ app.get("/:address/getNonce", (req: Request, res: Response) => {
 });
 
 app.post("/uploadToIPFS", async (req: any, res: Response) => {
-  console.log(req.files);
-  console.log(req.body.name);
-  console.log(req.body.description);
+  try {
+    console.log(req.files);
+    console.log(req.body);
 
-  //get image
+    //get image
 
-  //const ci = await storage.put(req.files);
+    //const ci = await storage.put(req.files);
 
-  const photoFilename =
-    generateNonce() + "." + req.files.file.name.split(".")[1];
+    const photoFilename =
+      generateNonce() + "." + req.files.file.name.split(".")[1];
 
-  const y = fs.writeFileSync("./images/" + photoFilename, req.files.file.data);
-  let rawdataImage = await getFilesFromPath("./images/" + photoFilename);
+    const y = fs.writeFileSync(
+      "./images/" + photoFilename,
+      req.files.file.data
+    );
+    let rawdataImage = await getFilesFromPath("./images/" + photoFilename);
 
-  const cid2 = await storage.put(rawdataImage);
+    const cid2 = await storage.put(rawdataImage);
 
-  const data = {
-    description: req.body.description,
-    image: `https://ipfs.io/ipfs/${cid2}/${photoFilename}`,
-    name: req.body.name,
-    attributes: []
-  };
+    const data = {
+      description: req.body.description,
+      image: `https://ipfs.io/ipfs/${cid2}/${photoFilename}`,
+      name: req.body.name,
+      tags: JSON.parse(req.body.tags),
+      attributes: [
+        {
+          trait_type: "Type",
+          value: req.body.type,
+        },
+      ],
+    };
 
-  const filename = generateNonce() + ".json";
+    const filename = generateNonce() + ".json";
 
-  const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data));
-  let rawdata = await getFilesFromPath("./metadata/" + filename);
+    const x = fs.writeFileSync("./metadata/" + filename, JSON.stringify(data));
+    let rawdata = await getFilesFromPath("./metadata/" + filename);
 
-  console.log("rawdata", rawdata);
+    console.log("rawdata", rawdata);
 
-  const cid = await storage.put(rawdata);
+    const cid = await storage.put(rawdata);
 
-  fs.unlinkSync("./images/" + photoFilename);
-  fs.unlinkSync("./metadata/" + filename);
+    fs.unlinkSync("./images/" + photoFilename);
+    fs.unlinkSync("./metadata/" + filename);
 
-  return res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
+    return res.json(`https://ipfs.io/ipfs/${cid}/${filename}`);
+  } catch (error) {
+	  res.status(500).send("Internal error")
+  }
 });
 
 app.get(
@@ -295,6 +307,9 @@ const packageContract = new ethers.Contract(
   provider
 );
 
+try {
+
+
 packageContract.on(
   "NewListing(address, uint256, string, uint256, uint256)",
   async (
@@ -309,7 +324,7 @@ packageContract.on(
       token,
       price,
       uri,
-      supply
+      supply,
     });
     try {
       const response = await axios.get(uri);
@@ -323,10 +338,10 @@ packageContract.on(
               from: "files",
               localField: "token",
               foreignField: "token",
-              as: "files"
-            }
+              as: "files",
+            },
           },
-          { $unwind: "$files" }
+          { $unwind: "$files" },
         ])
         .toArray(function (err: any, res: any) {
           if (err) throw err;
@@ -349,11 +364,13 @@ packageContract.on(
             user: user,
             token: token.toString(),
             price: price,
+            type: response.data.attributes[0].value ?? "File",
+            tags: response.data.tags ?? [],
             name: response.data.name ?? "StealthShare File",
             image: response.data.image ?? "StealthShare File Image",
             description:
               response.data.description ?? "StealthShare File Description",
-            size: view[0].files.files.size
+            size: view[0].files.files.size,
           });
       }
     } catch (err) {
@@ -361,6 +378,9 @@ packageContract.on(
     }
   }
 );
+} catch (error) {
+	
+}
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
